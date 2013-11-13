@@ -1,5 +1,10 @@
+import pytz
 import urllib
+
 from icalendar import Calendar
+from datetime import date
+from datetime import datetime
+
 
 class NetworkCalendar:
     def __init__(self, url):
@@ -16,14 +21,24 @@ class NetworkCalendar:
     def next_event(self):
         events = []
 
+        next_event = None
+        unaware_right_now = datetime.now()
+        utc = pytz.UTC
+        right_now = utc.localize(unaware_right_now)
+
         for component in self.calendar.walk():
             if component.name != 'VEVENT':
                 continue
-            events.append(component);
 
-        def compare(a, b):
-            return cmp(a.get('dtstart').dt, b.get('dtstart').dt);
+            # Ignore Events with no time 
+            if type(component.get('dtstart').dt) == date:
+                continue
 
-        sorted_events = sorted(events, compare)
+            # If event is in past
+            if component.get('dtstart').dt < right_now:
+                continue
 
-        return sorted_events[0]
+            if not next_event or component.get('dtstart').dt < next_event.get('dtstart').dt:
+                next_event = component
+
+        return next_event
